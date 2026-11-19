@@ -46,84 +46,77 @@
         }
         #talkBtn:active { transform: scale(0.95); }
         #talkBtn.listening { background: #ff3b30; }
-        #status { margin-top: 16px; font-size: 0.85rem; color: #888; }
+        #status { margin-top: 16px; font-size: 0.85rem; color: #888; text-align: center; }
     </style>
 </head>
 <body>
     <h1>🎙️ 语音对话原型</h1>
     <div id="display">点击下方按钮开始说话…</div>
-    <button id="talkBtn">按住说话</button>
+    <button id="talkBtn">点击说话</button>
     <div id="status">等待中</div>
 
     <script>
-const display = document.getElementById('display');
-const talkBtn = document.getElementById('talkBtn');
-const status = document.getElementById('status');
+        const display = document.getElementById('display');
+        const talkBtn = document.getElementById('talkBtn');
+        const status = document.getElementById('status');
 
-// 检查浏览器是否支持语音识别
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-if (!SpeechRecognition) {
-    status.textContent = '浏览器不支持语音识别，请换用 Chrome 浏览器';
-    display.textContent = '错误：当前浏览器不支持语音识别功能。';
-    talkBtn.disabled = true;
-    talkBtn.style.background = '#ccc';
-} else {
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'zh-CN';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    let isListening = false;
-
-    talkBtn.addEventListener('click', () => {
-        if (isListening) {
-            recognition.stop();
-            return;
-        }
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         
-        // 尝试请求麦克风权限
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(function(stream) {
-                // 权限获取成功，可以开始识别
+        if (!SpeechRecognition) {
+            status.textContent = '当前浏览器不支持语音识别';
+            display.textContent = '错误：当前浏览器不支持语音识别功能，请换用 Chrome 浏览器。';
+            talkBtn.disabled = true;
+            talkBtn.style.background = '#ccc';
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            let isListening = false;
+
+            talkBtn.addEventListener('click', () => {
+                if (isListening) {
+                    recognition.stop();
+                    return;
+                }
+                
                 display.textContent = '正在听…';
                 status.textContent = '请说话';
                 talkBtn.textContent = '停止';
                 talkBtn.classList.add('listening');
                 isListening = true;
-                recognition.start();
-                
-                // 释放麦克风（不然有些手机会一直亮麦克风图标）
-                stream.getTracks().forEach(track => track.stop());
-            })
-            .catch(function(err) {
-                // 权限被拒绝或没有麦克风
-                display.textContent = '无法获取麦克风权限！';
-                status.textContent = '错误：' + err.name;
-                alert('请允许网页使用麦克风，或者检查手机系统设置。');
+
+                try {
+                    recognition.start();
+                } catch (e) {
+                    display.textContent = '启动失败：' + e.message;
+                    status.textContent = '出错';
+                    talkBtn.textContent = '点击说话';
+                    talkBtn.classList.remove('listening');
+                    isListening = false;
+                }
             });
-    });
 
-    recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript;
-        display.textContent = '你说：' + text;
-        status.textContent = '识别完成';
-    };
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                display.textContent = '你说：' + text;
+                status.textContent = '识别完成';
+            };
 
-    recognition.onerror = (event) => {
-        display.textContent = '识别出错了：' + event.error;
-        status.textContent = '请重试';
-        if(event.error === 'not-allowed') {
-            alert('麦克风被拒绝使用，请在浏览器设置中允许。');
+            recognition.onerror = (event) => {
+                display.textContent = '识别出错了：' + event.error;
+                status.textContent = '请重试';
+            };
+
+            recognition.onend = () => {
+                talkBtn.textContent = '点击说话';
+                talkBtn.classList.remove('listening');
+                isListening = false;
+                if (status.textContent === '请说话') {
+                    status.textContent = '等待中';
+                }
+            };
         }
-    };
-
-    recognition.onend = () => {
-        talkBtn.textContent = '按住说话';
-        talkBtn.classList.remove('listening');
-        isListening = false;
-        if (status.textContent === '请说话') {
-            status.textContent = '等待中';
-        }
-    };
-}
+    </script>
+</body>
+</html>
