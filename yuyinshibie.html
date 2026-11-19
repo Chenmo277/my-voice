@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的语音对话原型</title>
+    <style>
+        body {
+            font-family: -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f5f5f7;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        h1 { font-size: 1.4rem; color: #333; }
+        #display {
+            width: 100%;
+            max-width: 400px;
+            min-height: 120px;
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            font-size: 1rem;
+            color: #555;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+        #talkBtn {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: #007aff;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,122,255,0.4);
+            transition: transform 0.1s;
+        }
+        #talkBtn:active { transform: scale(0.95); }
+        #talkBtn.listening { background: #ff3b30; }
+        #status { margin-top: 16px; font-size: 0.85rem; color: #888; }
+    </style>
+</head>
+<body>
+    <h1>🎙️ 语音对话原型</h1>
+    <div id="display">点击下方按钮开始说话…</div>
+    <button id="talkBtn">按住说话</button>
+    <div id="status">等待中</div>
+
+    <script>
+        const display = document.getElementById('display');
+        const talkBtn = document.getElementById('talkBtn');
+        const status = document.getElementById('status');
+
+        // 检查浏览器是否支持语音识别
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            status.textContent = '你的浏览器不支持语音识别，请用 Chrome 或 Edge 打开';
+            talkBtn.disabled = true;
+            talkBtn.style.background = '#ccc';
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            let isListening = false;
+
+            talkBtn.addEventListener('click', () => {
+                if (isListening) {
+                    recognition.stop();
+                    return;
+                }
+                display.textContent = '正在听…';
+                status.textContent = '请说话';
+                talkBtn.textContent = '停止';
+                talkBtn.classList.add('listening');
+                isListening = true;
+                recognition.start();
+            });
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                display.textContent = '你说：' + text;
+                status.textContent = '识别完成';
+            };
+
+            recognition.onerror = (event) => {
+                display.textContent = '出错了：' + event.error;
+                status.textContent = '请重试';
+            };
+
+            recognition.onend = () => {
+                talkBtn.textContent = '按住说话';
+                talkBtn.classList.remove('listening');
+                isListening = false;
+                if (status.textContent === '请说话') {
+                    status.textContent = '等待中';
+                }
+            };
+        }
+    </script>
+</body>
+</html>
